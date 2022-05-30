@@ -46,7 +46,7 @@ jobs:
       uses: actions/checkout@v2
       with:
         repository: Tirumaladevib/test1
-        path: github-actions
+        path: test1
         ref: main
         token: ${{ secrets.gh_repo_read_token }}
     - name: Get changed javascript files
