@@ -1,23 +1,23 @@
 name: Check Javascript Vulnerabilities.
-description: "Check javascript vulnerabilities to the PR"
+description: "Check javascript vulnerabilities"
 
 inputs:
-  frontend_wd: 
+  working_dir: 
     description: "A working directory passed from the caller workflow"
     required: true
-  backend_wd: 
-    description: "A working directory passed from the caller workflow"
-    required: false
-  frontend_config_file:
-    description: "A working directory passed from the caller workflow"
-    required: true
-  backend_config_file:
-    description: "A working directory passed from the caller workflow"
-    required: false
   node_version:
     description: "The version of nodejs to use, defaults to `14`."
     default: "14"
     required: false
+  config_file:
+    required: false
+    default: ""
+    type: string
+    description: "Set config file to audit the js vulnerabilities"
+  config:
+    required: true
+    type: string
+    description: "Set config file to audit the js vulnerabilities"
 
 runs:
   using: "composite"
@@ -27,12 +27,13 @@ runs:
       with:
         node-version: ${{ inputs.node_version }}
 
-    - name: Check Javascript Vulnerabilities.
+    - name: Check Javascript Vulnerabilities for frontend and backend.
       shell: bash
-      run: npx audit-ci --directory=${{ inputs.frontend_wd }} --config ${{ inputs.frontend_wd }}/${{ inputs.frontend_config_file }}
+      working-directory: ${{ inputs.working_dir }}
+      run: |
+          if [ -z ${{ inputs.config_file }} ]; then
+            npx audit-ci
+          else
+            npx audit-ci --config ${{ inputs.config_file }}
+          fi
       
-      
-    - name: Check Javascript Vulnerabilities.
-      shell: bash
-      run: npx audit-ci --directory=${{ inputs.backend_wd }} --config ${{ inputs.backend_wd }}/${{ inputs.backend_config_file }}
-           
