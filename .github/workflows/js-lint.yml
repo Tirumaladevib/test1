@@ -45,13 +45,13 @@ jobs:
     - name: Checkout actions repo
       uses: actions/checkout@v2
       with:
-        repository: saiteja-organization/github-actions
+        repository: Tirumaladevib/test1
         path: github-actions
         ref: main
         token: ${{ secrets.gh_repo_read_token }}
     - name: Get changed javascript files
       id: changed-files
-      uses: ./github-actions/.github/actions/changed-files-since-last-success
+      uses: ./test1/.github/actions/changed-files-since-last-success
       with:
         files_to_match: ${{ inputs.dir }}/${{ inputs.files_to_match }}
         github_token: ${{ secrets.gh_token }}
@@ -67,14 +67,14 @@ jobs:
       - name: Checkout actions repo
         uses: actions/checkout@v2
         with:
-          repository: saiteja-organization/github-actions
-          path: github-actions
+          repository: Tirumaladevib/test1
+          path: test1
           ref: main
           token: ${{ secrets.gh_token }}       
 
       - name: Check js vulnerabilities for ${{ inputs.dir }} 
         id: check-javascript-lint1
-        uses: ./github-actions/.github/actions/javascript-lint
+        uses: ./test1/.github/actions/javascript-lint
         with:
           working_dir: ${{ inputs.dir }}
           config_file: ${{ inputs.config_file }}
