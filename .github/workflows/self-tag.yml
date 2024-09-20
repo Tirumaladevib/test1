@@ -20,7 +20,7 @@ jobs:
       - name: Get changed files
         id: get-changed-files
         # yamllint disable-line rule:line-length
-        uses: merit/github-actions/.github/actions/changed-files-since-last-success@a_changed-files-since-last-success/v1
+        uses: .github/actions/changed-files-since-last-success@main
         with:
           files_to_match: |
             .github/actions/**
