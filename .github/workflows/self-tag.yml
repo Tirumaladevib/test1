@@ -1,0 +1,36 @@
+name: Create new tags or update existing ones
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  # TODO: filter these to changed only to not run matrix for all actions & workflows
+
+  get_all_actions_job:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.get-all-actions.outputs.matrix }}
+      any_changed: ${{ steps.get-changed-files.outputs.any_changed }}
+      changed_files: ${{ steps.get-changed-files.outputs.changed_files }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get changed files
+        id: get-changed-files
+        # yamllint disable-line rule:line-length
+        uses: merit/github-actions/.github/actions/changed-files-since-last-success@a_changed-files-since-last-success/v1
+        with:
+          files_to_match: |
+            .github/actions/**
+            .github/workflows/**
+          get_changed_dirs: true
+          github_token: ${{ secrets.GH_TOKEN }}
+          separator: "|"
+          workflow_id: self-tag.yml
+      - name: Print outputs
+        run: |
+          echo "any_changed: ${{ steps.get-changed-files.outputs.any_changed }}"
+          echo "changed_files: ${{ steps.get-changed-files.outputs.changed_files }}"
+          echo "matrix: ${{ steps.get-all-actions.outputs.matrix }}"
