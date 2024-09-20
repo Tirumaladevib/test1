@@ -1,0 +1,32 @@
+name: Changed files and dirs
+description: |
+  Provided concatenated list of directories find terraform modules that changed or which dependencies have changed
+
+inputs:
+  changed_files_dirs:
+    description: |
+      String of changed directories that are split by 'separator', e.g. for '|' separator 'path1/to/dir1|path2/to/dir2'
+    required: true
+  separator:
+    description: Separator to use joining files to output changed modules string
+    required: false
+    default: '|'
+
+outputs:
+  any_changed:
+    description: JSON of all module paths that changed including `changed_root_modules` output.
+    value: ${{ steps.get-changed-files-dirs.outputs.any_changed }}
+  changed_files_dir:
+    description: JSON of all module paths that changed including `changed_root_modules` output.
+    value: ${{ steps.get-changed-files-dirs.outputs.changed_files_dir }}
+runs:
+  using: "composite"
+  steps:
+    - name: Find changed files and dir
+      id: get-changed-files-dirs
+      shell: bash
+      run: bash ${{ github.action_path }}/command.sh
+      env:
+        CHANGED_FILES_DIR_NAME: ${{ inputs.changed_files_dirs }}
+        SEPARATOR: ${{ inputs.separator }}
+    
