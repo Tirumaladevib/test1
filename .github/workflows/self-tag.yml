@@ -31,11 +31,11 @@ jobs:
       - name: Get changed tf files and dirs
         id: get-changed-files-dirs
         # yamllint disable-line rule:line-length
-        uses: merit/github-actions/.github/actions/changed-files-dir@main
+        uses: Tirumaladevib/test1/.github/actions/changed-files-dir@main
         with:
           changed_files_dirs: ${{ steps.get-changed-files.outputs.changed_files }}
       - name: Print outputs
         run: |
           echo "any_changed: ${{ steps.get-changed-files.outputs.any_changed }}"
           echo "changed_files: ${{ steps.get-changed-files.outputs.changed_files }}"
-          echo "matrix: ${{ steps.get-changed-files-dirs.outputs.matrix }}"
+          #echo "matrix: ${{ steps.get-changed-files-dirs.outputs.matrix }}"
