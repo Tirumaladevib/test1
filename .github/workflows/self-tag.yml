@@ -36,6 +36,6 @@ jobs:
           changed_files_dirs: ${{ steps.get-changed-files.outputs.changed_files }}
       - name: Print outputs
         run: |
-          echo "any_changed: ${{ steps.get-changed-files.outputs.any_changed }}"
-          echo "changed_files: ${{ steps.get-changed-files.outputs.changed_files }}"
+          echo "any_changed: ${{ steps.get-changed-files-dirs.outputs.any_changed }}"
+          echo "changed_files: ${{ steps.get-changed-files-dirs.outputs.changed_files }}"
           #echo "matrix: ${{ steps.get-changed-files-dirs.outputs.matrix }}"
