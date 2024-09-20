@@ -51,4 +51,4 @@ jobs:
         run: |
           echo "any_changed: ${{ steps.get-changed-files.outputs.any_changed }}"
           echo "changed_files: ${{ steps.get-changed-files.outputs.changed_files }}"
-          echo "matrix: ${{ steps.get-get-all-actions.matrix }}"
+          echo "matrix: ${{ steps.get-all-actions.outputs.matrix }}"
