@@ -1,6 +1,5 @@
 name: Changed files since last successful run
 description: "Get a list of changed files since last successful run on base branch"
-
 inputs:
   github_token:
     description: "GitHub access token"
@@ -8,11 +7,20 @@ inputs:
   workflow_id:
     description: "ID or filename of the workflow to get latest successful commit"
     required: true
-    default: tf-lint.yml
   files_to_match:
     description: "Check for changes using only this list of files or regex (Defaults to the entire repo)"
     required: false
-    default: ""
+    default: '**'
+  get_changed_dirs:
+    description: |
+      Output unique changed directories instead of filenames.
+      This returns `.` for changed files located in the current working directory which defaults to `$GITHUB_WORKSPACE`
+    required: false
+    default: false
+  separator:
+    description: Separator to use joining files for a 'changed_files' output
+    required: false
+    default: ' '
 
 outputs:
   any_changed:
@@ -21,6 +29,9 @@ outputs:
   changed_files:
     description: List of all copied, modified, and added files that match input files_to_match pattern.
     value: ${{ steps.changed-files.outputs.all_changed_files}}
+  matrix:
+    description: JSON object with list of `changed_files`
+    value: ${{ steps.set-matrix.outputs.matrix }}
 
 runs:
   using: "composite"
@@ -28,33 +39,42 @@ runs:
     - name: Fetch branch
       if: ${{ github.base_ref }}
       shell: bash
-      run: |
-           git fetch origin ${{ github.base_ref }}:${{ github.base_ref }}
-           echo "${{ github.base_ref }}"
+      run: git fetch origin ${{ github.base_ref }}:${{ github.base_ref }}
 
     - name: Get last successful commit on base branch
-      uses: nrwl/last-successful-commit-action@v1
+      uses: nrwl/nx-set-shas@v3
       id: last_successful_commit
       with:
-        branch: ${{ github.base_ref || github.ref_name }}
-        workflow_id: ${{ inputs.workflow_id }}
-        github_token: ${{ inputs.github_token }}
+        main-branch-name: ${{ github.base_ref || github.ref_name }}
+        workflow-id: ${{ inputs.workflow_id }}
 
     - name: Get last common ancestor commit with base branch
       id: common_ancestor_commit
       if: ${{ github.base_ref }}
       shell: bash
-      run: echo "::set-output name=commit_sha::$(git merge-base ${LAST_SUCCESSFUL_COMMIT:-origin/$GITHUB_BASE_BRANCH} $GITHUB_SHA)"
+      run: >
+        echo "commit_sha=$(git merge-base ${LAST_SUCCESSFUL_COMMIT:-origin/$GITHUB_BASE_BRANCH} $GITHUB_SHA)"
+        >> $GITHUB_OUTPUT
       env:
         LAST_SUCCESSFUL_COMMIT: ${{ steps.last_successful_commit.outputs.commit_hash }}
         GITHUB_BASE_BRANCH: ${{ github.base_ref }}
 
     - name: Get changed files
-      uses: tj-actions/changed-files@v12
+      uses: tj-actions/changed-files@v40.0.0
       id: changed-files
       with:
-        base_sha: ${{ steps.common_ancestor_commit.outputs.commit_sha || steps.last_successful_commit.outputs.commit_hash }}
+        base_sha: ${{ steps.common_ancestor_commit.outputs.commit_sha ||
+                      steps.last_successful_commit.outputs.commit_hash }}
         files: ${{ inputs.files_to_match }}
-        # Note: this flow might break if files contain spaces, then should overwrite logic using `separator`
-        # separator: ","
-        
+        dir_names: ${{ inputs.get_changed_dirs }}
+        separator: ${{ inputs.separator }}
+
+    - name: Set Matrix
+      id: set-matrix
+      shell: bash
+      run: |
+        mapfile -d "${SEPARATOR}" -t changed_files < <(printf "%s" "${CHANGED_FILES_RAW}")
+        echo "matrix=$(jq -cne '{"paths": [$ARGS.positional[]]}' --args "${changed_files[@]}")" >> "${GITHUB_OUTPUT}"
+      env:
+        CHANGED_FILES_RAW: ${{ steps.changed-files.outputs.all_changed_files }}
+        SEPARATOR: ${{ inputs.separator }}
