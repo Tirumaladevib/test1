@@ -29,11 +29,6 @@ jobs:
           github_token: ${{ secrets.GH_TOKEN }}
           separator: "|"
           workflow_id: self-tag.yml
-      - name: Print outputs
-        run: |
-          echo "any_changed: ${{ steps.get-changed-files.outputs.any_changed }}"
-          echo "changed_files: ${{ steps.get-changed-files.outputs.changed_files }}"
-          echo "matrix: ${{ steps.get-changed-files.outputs.matrix }}"
       - name: Get all actions
         id: get-all-actions
         shell: bash
@@ -52,3 +47,8 @@ jobs:
 
           actions_n_workflows_json=$(echo "${workflows_json} ${actions_json}" |  jq -s -c add)
           echo "matrix={\"include\":$actions_n_workflows_json}" >> $GITHUB_OUTPUT
+      - name: Print outputs
+        run: |
+          echo "any_changed: ${{ steps.get-changed-files.outputs.any_changed }}"
+          echo "changed_files: ${{ steps.get-changed-files.outputs.changed_files }}"
+          echo "matrix: ${{ steps.get-get-all-actions.matrix }}"
