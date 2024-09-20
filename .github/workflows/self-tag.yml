@@ -34,3 +34,21 @@ jobs:
           echo "any_changed: ${{ steps.get-changed-files.outputs.any_changed }}"
           echo "changed_files: ${{ steps.get-changed-files.outputs.changed_files }}"
           echo "matrix: ${{ steps.get-changed-files.outputs.matrix }}"
+      - name: Get all actions
+        id: get-all-actions
+        shell: bash
+        run: |
+          # Get directories as an array for all github actions that we version
+          readarray -d '' actions < <(find .github/actions -mindepth 1 -maxdepth 1 -type d)
+          # Get directories as an array for all github workflows that we version
+          readarray -d '' workflows < <(find .github/workflows/ -type f ! -name 'self-*')
+
+          workflows_json=$(
+            echo "${workflows[@]}" |  jq -c -R 'split(" ")
+            | map({prefix: ("w_" + split("/")[-1] | split(".")[0]), path: (.)})')
+
+          actions_json=$(
+            echo "${actions[@]}" |  jq -c -R 'split(" ") | map({prefix: ("a_" + split("/")[-1]), path: (.)})')
+
+          actions_n_workflows_json=$(echo "${workflows_json} ${actions_json}" |  jq -s -c add)
+          echo "matrix={\"include\":$actions_n_workflows_json}" >> $GITHUB_OUTPUT
