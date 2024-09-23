@@ -39,7 +39,7 @@ jobs:
           readarray -d '' workflows < <(find .github/workflows/ -type f ! -name 'self-*')
 
           # Get the list of changed files
-          changed_files=${{ steps.changed-dirs.outputs.changed_files }}
+          changed_files=${{ steps.get-changed-files.outputs.changed_files }}
           # Initialize empty arrays for actions and workflows to run
           actions_to_run=()
           workflows_to_run=()
@@ -66,9 +66,11 @@ jobs:
           actions_n_workflows_json=$(echo "${workflows_json} ${actions_json}" | jq -s -c add)
           # Output the matrix to be used in the GitHub Actions workflow
           echo "matrix={\"include\":$actions_n_workflows_json}" >> $GITHUB_OUTPUT
+          echo "any_changed=$(jq -cne '{"paths": [$ARGS.positional[]]}' --args "${actions_n_workflows_json}")" >> "${GITHUB_OUTPUT}"
+          echo "changed_files=${actions_n_workflows_json+"true"}" >> "${GITHUB_OUTPUT}"
       
       - name: Print outputs
         run: |
-          echo "any_changed: ${{ steps.get-changed-files-dirs.outputs.any_changed }}"
-          echo "changed_files: ${{ steps.get-changed-files-dirs.outputs.changed_files }}"
-          #echo "matrix: ${{ steps.get-changed-files-dirs.outputs.matrix }}"
+          echo "any_changed: ${{ steps.get-all-actions.outputs.any_changed }}"
+          echo "changed_files: ${{ steps.get-all-actions.outputs.changed_files }}"
+          #echo "matrix: ${{ steps.get-all-actions.outputs.matrix }}"
