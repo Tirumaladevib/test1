@@ -28,12 +28,45 @@ jobs:
           github_token: ${{ secrets.GH_TOKEN }}
           separator: "|"
           workflow_id: self-tag.yml
-      - name: Get changed tf files and dirs
-        id: get-changed-files-dirs
-        # yamllint disable-line rule:line-length
-        uses: Tirumaladevib/test1/.github/actions/changed-files-dir@main
-        with:
-          changed_files_dirs: ${{ steps.get-changed-files.outputs.changed_files }}
+      
+      - name: Get all actions
+        id: get-all-actions
+        shell: bash
+        run: |
+          # Get directories as an array for all GitHub Actions that we version
+          readarray -d '' actions < <(find .github/actions -mindepth 1 -maxdepth 1 -type d)
+          # Get directories as an array for all GitHub Workflows that we version
+          readarray -d '' workflows < <(find .github/workflows/ -type f ! -name 'self-*')
+
+          # Get the list of changed files
+          changed_files=${{ steps.changed-dirs.outputs.changed_files }}
+          # Initialize empty arrays for actions and workflows to run
+          actions_to_run=()
+          workflows_to_run=()
+          # Compare changed files to actions and workflows
+          for action in "${actions[@]}"; do
+              if echo "$changed_files" | grep -q "$action"; then
+                  actions_to_run+=("$action")
+              fi
+          done
+          for workflow in "${workflows[@]}"; do
+              if echo "$changed_files" | grep -q "$workflow"; then
+                  workflows_to_run+=("$workflow")
+              fi
+          done
+          # Convert to JSON
+          workflows_json=$(
+              echo "${workflows_to_run[@]}" | jq -c -R 'split(" ") 
+              | map({prefix: ("w_" + split("/")[-1] | split(".")[0]), path: (.)})'
+          )
+          actions_json=$(
+              echo "${actions_to_run[@]}" | jq -c -R 'split(" ") 
+              | map({prefix: ("a_" + split("/")[-1]), path: (.)})'
+          )
+          actions_n_workflows_json=$(echo "${workflows_json} ${actions_json}" | jq -s -c add)
+          # Output the matrix to be used in the GitHub Actions workflow
+          echo "matrix={\"include\":$actions_n_workflows_json}" >> $GITHUB_OUTPUT
+      
       - name: Print outputs
         run: |
           echo "any_changed: ${{ steps.get-changed-files-dirs.outputs.any_changed }}"
