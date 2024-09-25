@@ -16,58 +16,42 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Get changed files
-        id: get-changed-files
-        # yamllint disable-line rule:line-length
-        uses: Tirumaladevib/test1/.github/actions/changed-files-since-last-success@main
-        with:
-          files_to_match: |
-            .github/actions/**
-            .github/workflows/**
-          get_changed_dirs: true
-          github_token: ${{ secrets.GH_TOKEN }}
-          separator: "|"
-          workflow_id: self-tag.yml
+      # - name: Get changed files
+      #   id: get-changed-files
+      #   # yamllint disable-line rule:line-length
+      #   uses: Tirumaladevib/test1/.github/actions/changed-files-since-last-success@main
+      #   with:
+      #     files_to_match: |
+      #       .github/actions/**
+      #       .github/workflows/**
+      #     get_changed_dirs: true
+      #     github_token: ${{ secrets.GH_TOKEN }}
+      #     separator: "|"
+      #     workflow_id: self-tag.yml
       
-      - name: Get all actions
+      - name: Get all actions and workflows to run
         id: get-all-actions
         shell: bash
         run: |
-          set -euo pipefail
-          c1grep() {
-            grep "$@" || test $? = 1
-          }
-          
-          changed_files_dir=${{ steps.get-changed-files.outputs.changed_files }}
-          
-          # Use ls or find to get the list of files in the directory
-          #mapfile -t changed_files_list < <(ls "$changed_files_dir")
-          #mapfile -t changed_files_dir_array <<< "$changed_files_dir"
-          #mapfile -d "${SEPARATOR}" -t changed_files_dir_array < <(printf "%s" "${CHANGED_DIRS_RAW}")
-          
-          # Check each item using a for loop
-          for item in "${changed_files_dir[@]}"; do
-            if [[ -e "$item" ]]; then
-              if [[ -f "$item" ]]; then
-                echo "$item exists and is a file."
-              elif [[ -d "$item" ]]; then
-                echo "$item exists and is a directory."
+
+          # Get the list of changed files since the last commit (you can replace HEAD with another commit hash if needed)
+          # Load the output of git diff into an array using mapfile
+          CHANGED_FILES=".github/actions/**"
+
+          # Initialize arrays to store files and directories
+          files=()
+          dirs=()
+
+          # Loop through each changed file and separate files and directories
+          for FILE in "${CHANGED_FILES[@]}"; do
+              if [ -d "$FILE" ]; then
+                  # If it's a directory, append to the dirs array
+                  dirs+=("$FILE")
               else
-                echo "$item exists but is neither a regular file nor a directory."
+                  # If it's a file, append to the files array
+                  files+=("$FILE")
               fi
-            else
-              echo "$item does not exist."
-            fi
           done
 
-          #mapfile -t changed_files < <( printf '%s\n' "${changed_files_dir[@]}" | sort -u | c1grep "\S")
-          #echo "any_changed=${changed_files_dir[*]+"true"}" >> output.txt
-          mapfile -t changed_files < <( printf '%s\n' "${changed_files_dir[@]}" | sort -u | c1grep "\S")
-          echo "changed_files=$(jq -cne '{"paths": [$ARGS.positional[]]}' --args "${changed_files[@]}")" >> "${GITHUB_OUTPUT}"
-          echo "any_changed=${changed_files_dir[*]+"true"}" >> "${GITHUB_OUTPUT}"
-      
-      - name: Print outputs
-        run: |
-          echo "any_changed: ${{ steps.get-all-actions.outputs.any_changed }}"
-          echo "changed_files: ${{ steps.get-all-actions.outputs.changed_files }}"
-          echo "matrix: ${{ steps.get-all-actions.outputs.matrix }}"
+          mapfile -t changed_dirs < <( printf '%s\n' "${dirs[@]}" "${files[@]}")
+          echo "changed_dirs=$(jq -cne '{"paths": [$ARGS.positional[]]}' --args "${changed_dirs[@]}")"
