@@ -3,7 +3,7 @@ description: |
   Provided concatenated list of directories find terraform modules that changed or which dependencies have changed
 
 inputs:
-  changed_files_dirs:
+  changed_dirs:
     description: |
       String of changed directories that are split by 'separator', e.g. for '|' separator 'path1/to/dir1|path2/to/dir2'
     required: true
@@ -27,6 +27,6 @@ runs:
       shell: bash
       run: bash ${{ github.action_path }}/command.sh
       env:
-        CHANGED_FILES_DIR_NAME: ${{ inputs.changed_files_dirs }}
+        CHANGED_FILES_DIR_NAME: ${{ inputs.changed_dirs }}
         SEPARATOR: ${{ inputs.separator }}
     

@@ -6,7 +6,7 @@ c1grep() {
   grep "$@" || test $? = 1
 }
 
-changed_files_dir="${CHANGED_FILES_DIR_NAME}"
+changed_dirs="${CHANGED_FILES_DIR_NAME}"
 
 # Use ls or find to get the list of files in the directory
 #mapfile -t changed_files_list < <(ls "$changed_files_dir")
@@ -14,22 +14,45 @@ changed_files_dir="${CHANGED_FILES_DIR_NAME}"
 #mapfile -d "${SEPARATOR}" -t changed_files_dir_array < <(printf "%s" "${CHANGED_DIRS_RAW}")
 
 # Check each item using a for loop
-for item in "${changed_files_dir[@]}"; do
-  if [[ -e "$item" ]]; then
-    if [[ -f "$item" ]]; then
-      echo "$item exists and is a file."
-    elif [[ -d "$item" ]]; then
-      echo "$item exists and is a directory."
-    else
-      echo "$item exists but is neither a regular file nor a directory."
-    fi
+# Initialize arrays to store files and directories
+files=()
+dirs=()
+
+# Loop through each changed file and separate files and directories
+for FILE in "${changed_dirs[@]}"; do
+  if [ -f "$FILE" ]; then
+  # If it's a directory, append to the dirs array
+    dirs+=("$FILE")
   else
-    echo "$item does not exist."
+  # If it's a file, append to the files array
+    files+=("$FILE")
   fi
 done
 
-#mapfile -t changed_files < <( printf '%s\n' "${changed_files_dir[@]}" | sort -u | c1grep "\S")
-#echo "any_changed=${changed_files_dir[*]+"true"}" >> output.txt
-mapfile -t changed_files_dir < <( printf '%s\n' "${changed_files_dir[@]}" | sort -u | c1grep "\S")
-echo "changed_files_dir=$(jq -cne '{"paths": [$ARGS.positional[]]}' --args "${changed_files_dir[@]}")" >> "${GITHUB_OUTPUT}"
-echo "any_changed=${changed_files_dir[*]+"true"}" >> "${GITHUB_OUTPUT}"
+# # Loop through each changed item and separate files and directories
+# for ITEM in "${changed_dirs[@]}"; do
+#   if [ -d "$ITEM" ]; then
+#     # If it's a directory, append to the dirs array
+#     dirs+=("$ITEM")
+#   elif [ -f "$ITEM" ]; then
+#     # If it's a file, append to the files array
+#     files+=("$ITEM")
+#   fi
+# done
+
+
+# # Output the results
+# echo "Changed Files:"
+# for file in "${files[@]}"; do
+#   echo "$file"
+# done
+
+# echo ""
+# echo "Changed Directories:"
+# for dir in "${dirs[@]}"; do
+#   echo "$dir"
+# done
+
+mapfile -t changed_dirs < <( printf '%s\n' "${dirs[@]}" "${files[@]}")
+echo "changed_dirs=$(jq -cne '{"paths": [$ARGS.positional[]]}' --args "${changed_dirs[@]}")"
+echo "any_changed=${changed_dirs[*]+"true"}"

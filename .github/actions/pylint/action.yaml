@@ -9,7 +9,7 @@ inputs:
     description: "List of file paths to check"
     required: true
   os:
-    description: "The OS that's used to run action"
+    description: "The OS that's used to run action to"
     default: ubuntu-latest
     required: false
 

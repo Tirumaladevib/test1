@@ -7,7 +7,7 @@ on:
       workflow_id:
          required: true
          type: string
-         description: "ID or filename of the workflow to get latest successful commit"
+         description: "ID or filename of the workflow to get latest successful commit to"
       files_to_match:
          description: "Check for changes using only this list of files or regex (Defaults to the entire repo)"
          required: true

@@ -1,0 +1,74 @@
+name: SemVer tags
+description: "Create semantic version tags for major and full version"
+
+inputs:
+  tag_prefix:
+    description: "The prefix to use to identify tags"
+    required: false
+    default: "v"
+  major_pattern:
+    description: |
+      A string which, if present in a git commit, indicates that a change represents a major (breaking) change.
+      Wrap with '/' to match using a regular expression.
+    required: true
+  minor_pattern:
+    description: |
+      A string which, if present in a git commit, indicates that a change represents a minor (feature) change.
+      Wrap with '/' to match using a regular expression.
+    required: true
+  change_path:
+    description: |
+      Path to check for changes. If any changes are detected in the path the 'changed' output will true.
+      Enter multiple paths separated by spaces.
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+    - uses: paulhatch/semantic-version@v5.4.0
+      id: semver
+      with:
+        tag_prefix: ${{ inputs.tag_prefix }}
+        major_pattern: ${{ inputs.major_pattern }}
+        minor_pattern: ${{ inputs.minor_pattern }}
+        change_path: ${{ inputs.change_path }}
+        bump_each_commit: false
+        search_commit_body: true
+    - name: Create Full Tag
+      if: ${{ steps.semver.outputs.changed == 'true' && steps.semver.outputs.previous_version != '0.0.0' }}
+      uses: rickstaa/action-create-tag@v1.7.2
+      with:
+        tag: ${{ steps.semver.outputs.version_tag }}
+        message: "[Automatic]: create full version for ${{ inputs.tag_prefix }}"
+    - name: Create/Update Minor Tag
+      if: ${{ steps.semver.outputs.changed == 'true' && steps.semver.outputs.previous_version != '0.0.0' }}
+      uses: rickstaa/action-create-tag@v1.7.2
+      with:
+        tag: "${{ inputs.tag_prefix }}${{ steps.semver.outputs.major }}.${{ steps.semver.outputs.minor }}"
+        message: "[Automatic]: create/update minor version for ${{ inputs.tag_prefix }}"
+        force_push_tag: true
+    - name: Create/Update Major Tag
+      if: ${{ steps.semver.outputs.changed == 'true' && steps.semver.outputs.previous_version != '0.0.0' }}
+      uses: rickstaa/action-create-tag@v1.7.2
+      with:
+        tag: "${{ inputs.tag_prefix }}${{ steps.semver.outputs.major }}"
+        message: "[Automatic]: create/update major version for ${{ inputs.tag_prefix }}"
+        force_push_tag: true
+    - name: Create Initital Full Tag
+      if: ${{ steps.semver.outputs.changed == 'true' && steps.semver.outputs.previous_version == '0.0.0' }}
+      uses: rickstaa/action-create-tag@v1.7.2
+      with:
+        tag: "${{ inputs.tag_prefix }}1.0.0"
+        message: "[Automatic]: create initial full version for ${{ inputs.tag_prefix }}"
+    - name: Create Initital Minor Tag
+      if: ${{ steps.semver.outputs.changed == 'true' && steps.semver.outputs.previous_version == '0.0.0' }}
+      uses: rickstaa/action-create-tag@v1.7.2
+      with:
+        tag: "${{ inputs.tag_prefix }}1.0"
+        message: "[Automatic]: create initial minor version for ${{ inputs.tag_prefix }}"
+    - name: Create Initital Major Tag
+      if: ${{ steps.semver.outputs.changed == 'true' && steps.semver.outputs.previous_version == '0.0.0' }}
+      uses: rickstaa/action-create-tag@v1.7.2
+      with:
+        tag: "${{ inputs.tag_prefix }}1"
+        message: "[Automatic]: create initial major version for ${{ inputs.tag_prefix }}"
