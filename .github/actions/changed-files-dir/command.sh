@@ -55,4 +55,4 @@ done
 
 mapfile -t changed_dirs < <( printf '%s\n' "${dirs[@]}" "${files[@]}")
 echo "changed_dirs=$(jq -cne '{"paths": [$ARGS.positional[]]}' --args "${changed_dirs[@]}")"
-echo "any_changed=${changed_dirs[*]+"true"}"
+echo "any_changed=${changed_dirs[*]+"true"}" 
