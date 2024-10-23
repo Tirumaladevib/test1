@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - main
-    outputs:
-
 
 jobs:
   # TODO: filter these to changed only to not run matrix for all actions & workflows
@@ -13,57 +11,180 @@ jobs:
   get_all_actions_job:
     runs-on: ubuntu-latest
     outputs:
-      any_changed: ${{ steps.get-changed-modules.outputs.any_changed }}
-      changed_dirs: ${{ steps.get-changed-modules.outputs.changed_dirs }}
+      any_changed: ${{ steps.get-all-actions.outputs.any_changed }}
+      changed_dirs: ${{ steps.get-all-actions.outputs.matrix }}
+      # any_changed: ${{ steps.get-changed-modules.outputs.any_changed }}
+      # changed_dirs: ${{ steps.get-changed-modules.outputs.changed_dirs }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Get all actions
+        id: get-all-actions
+        shell: bash
+        run: |
+        
+          base_sha=$(git rev-parse origin/main)
+          #echo "base_sha=$base_sha" >> $GITHUB_ENV
+          actions_changed_files=$(git diff --name-only ${base_sha}...${{ github.sha }} \
+             -- '.github/actions/*')
+          workflows_changed_files=$(git diff --name-only ${base_sha}...${{ github.sha }} \
+             -- '.github/workflows/*')
+          # echo "$actions_changed_files"
+          # echo "$workflows_changed_files"
 
-      - name: Get changed files
-        id: get-changed-files
-        # yamllint disable-line rule:line-length
-        uses: Tirumaladevib/test1/.github/actions/changed-files-since-last-success@main
+          # Get directories as an array for all github actions that we version
+          readarray -d '' actions < <(echo "${actions_changed_files}" | sed 's|/[^/]*$||' | sort | uniq)
+          # Get directories as an array for all github workflows that we version
+          readarray -d '' workflows < <(echo "${workflows_changed_files}" | sed 's|/[^/]*$||' | sort | uniq)
+
+          workflows_json=$(
+            echo "${workflows[@]}" |  jq -c -R 'split(" ")
+            | map({prefix: ("w_" + split("/")[-1] | split(".")[0]), path: (.)})')
+
+          #echo "$workflows_json"
+
+          actions_json=$(
+            echo "${actions[@]}" |  jq -c -R 'split(" ") | map({prefix: ("a_" + split("/")[-1]), path: (.)})')
+
+          #echo "$actions_json"
+
+          actions_n_workflows_json=$(echo "${workflows_json} ${actions_json}" |  jq -s -c add)
+          echo "any_changed=${actions_n_workflows_json[*]+"true"}" >> "${GITHUB_OUTPUT}"
+          echo "matrix={\"include\":$actions_n_workflows_json}" >> $GITHUB_OUTPUT
+
+      # - name: Get latest commit SHA on main
+      #   run: |
+      #     MAIN_COMMIT_SHA=$(git rev-parse origin/main)
+      #     echo "MAIN_COMMIT_SHA=$MAIN_COMMIT_SHA" >> $GITHUB_ENV
+      
+      # - name: Get changed files and directories
+      #   id: get-changed-dirs
+      #   run: |
+      #     #!/bin/bash
+          
+      #     # Get the last commit SHA of the base branch (e.g., main)
+      #     BASE_BRANCH=${{ github.base_ref || 'main' }}
+      #     LAST_COMMIT_SHA=$(git rev-parse origin/$BASE_BRANCH)
+
+      #     # Get the list of changed files in .github/actions and .github/workflows
+      #     CHANGED_FILES=$(git diff --name-only ${LAST_COMMIT_SHA}...${{ github.sha }} \
+      #       -- '.github/actions/*' '.github/workflows/*')
+
+      #     # # Get the list of unique directories from the changed files
+      #     CHANGED_DIRS=$(echo "${CHANGED_FILES}" | sed 's|/[^/]*$||' | sort | uniq)
+
+      #     # changed_files_dirs=("$CHANGED_FILES" "$CHANGED_DIRS")
+      #     # echo "$changed_files_dirs"
+      #     # mapfile -t changed_files < <( printf '%s\n' "$CHANGED_FILES")
+      #     # echo "changed_files=$(jq -cne '{"paths": [$ARGS.positional[]]}' --args "${changed_files[@]}")" >> "${GITHUB_OUTPUT}"
+      #     # echo "any_changed=${changed_dirs[*]+"true"}" >> "${GITHUB_OUTPUT}"
+
+      #     mapfile -t changed_dirs < <( printf '%s\n' "$CHANGED_DIRS")
+      #     echo "changed_dirs=$(jq -cne '{"paths": [$ARGS.positional[]]}' --args "${changed_dirs[@]}")"
+      #     echo "any_changed=${changed_dirs[*]+"true"}"
+
+
+
+          # # Set the output for changed files
+          # echo "changed_files=$CHANGED_FILES"
+          # # Set the output for changed files
+          # echo "changed_dirs=$CHANGED_DIRS"
+
+        #   # Fetch the base commit and head commit from environment variables
+        #   BASE_SHA="${MAIN_COMMIT_SHA:-HEAD~1}"
+        #   echo "$BASE_SHA"
+        #   HEAD_SHA="${GITHUB_SHA}"
+        #   echo "$HEAD_SHA"
+
+        #   # Check if both SHA values are set
+        #   if [ -z "$BASE_SHA" ] || [ -z "$HEAD_SHA" ]; then
+        #     echo "Error: Unable to determine the base and head commits."
+        #     exit 1
+        #   fi
+
+        #   # Get the list of changed items between the specified commits
+        #   changed_items=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+        #   echo "$changed_items"
+
+        #   # Check if there are any changed items
+        #   if [ -z "$changed_items" ]; then
+        #     echo "No changes detected between $BASE_SHA and $HEAD_SHA."
+        #     exit 0
+        #   fi
+
+        #   # Initialize arrays for files and directories
+        #   files=()
+        #   dirs=()
+
+        #   # Loop through each changed item and separate files and directories
+        #   for ITEM in $changed_items; do
+        #     if [ -d "$ITEM" ]; then
+        #       # If it's a directory, append to the dirs array
+        #       dirs+=("$ITEM")
+        #     elif [ -f "$ITEM" ]; then
+        #       # If it's a file, append to the files array
+        #       files+=("$ITEM")
+        #     fi
+        #   done
+        #   mapfile -t changed_dirs < <( printf '%s\n' "${dirs[@]}" "${files[@]}")
+        #   echo "changed_dirs=$(jq -cne '{"paths": [$ARGS.positional[]]}' --args "${changed_dirs[@]}")" >> "${GITHUB_OUTPUT}"
+        #   echo "any_changed=${changed_dirs[*]+"true"}" >> "${GITHUB_OUTPUT}"
+        # env:
+        #   GITHUB_SHA: ${{ github.sha }}
+
+      # - name: Get changed files
+      #   id: get-changed-files
+      #   # yamllint disable-line rule:line-length
+      #   uses: Tirumaladevib/test1/.github/actions/changed-files-since-last-success@main
+      #   with:
+      #     files_to_match: |
+      #       .github/workflows/**
+      #       .github/actions/**
+      #     get_changed_dirs: true
+      #     github_token: ${{ secrets.GH_TOKEN }}
+      #     separator: "|"
+      #     workflow_id: self-tag.yml
+
+      # - name: Get changed tf modules
+      #   id: get-changed-modules
+      #   uses: Tirumaladevib/test1/.github/actions/changed-files-dir@td-self-tag
+      #   with:
+      #     changed_dirs: ${{ steps.get-changed-files.outputs.changed_files }}
+      #    separator: ','
+  print_outputs:
+    runs-on: ubuntu-latest
+    needs: get_all_actions_job
+    steps:
+      - name: Get outputs
+        run: |
+          echo "any_changed: ${{ needs.get_all_actions_job.outputs.any_changed }}"
+          echo "changed_dirs: ${{ needs.get_all_actions_job.outputs.changed_dirs }}"
+  
+  tag_job:
+    runs-on: ubuntu-latest
+    needs: get_all_actions_job
+    if: needs.get_all_actions_job.outputs.any_changed == 'true'
+    strategy:
+      max-parallel: 6
+      matrix: ${{ fromJson(needs.get_all_actions_job.outputs.changed_dirs) }}
+    steps:
+      - uses: actions/checkout@v4
         with:
-          files_to_match: |
-            .github/workflows/**
-            .github/actions/**
-          get_changed_dirs: true
-          github_token: ${{ secrets.GH_TOKEN }}
-          separator: "|"
-          workflow_id: self-tag.yml
-
-      - name: Get changed tf modules
-        id: get-changed-modules
-        uses: Tirumaladevib/test1/.github/actions/changed-files-dir@main
+          fetch-depth: 0
+      - uses:  ./.github/actions/tag-semver
+        id: semver
         with:
-          changed_dirs: ${{ steps.get-changed-files.outputs.changed_files }}
-          separator: '|'
+          tag_prefix: "${{ matrix.prefix }}/v"
+          major_pattern: "BREAKING CHANGE"
+          minor_pattern: "/^(feat|chore)[^a-z]/"
+          change_path: ${{ matrix.path }}
 
-  # tag_job:
-  #   runs-on: ubuntu-latest
-  #   needs: get_all_actions_job
-  #   if: needs.get_all_actions_job.outputs.any_changed == 'true'
-  #   strategy:
-  #     max-parallel: 6
-  #     matrix: ${{ fromJson(needs.get_all_actions_job.outputs.changed_dirs) }}
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #       with:
-  #         fetch-depth: 0
-  #     - uses:  ./.github/actions/tag-semver
-  #       id: semver
-  #       with:
-  #         tag_prefix: "${{ matrix.prefix }}/v"
-  #         major_pattern: "BREAKING CHANGE"
-  #         minor_pattern: "/^(feat|chore)[^a-z]/"
-  #         change_path: ${{ matrix.path }}
-
-  # tag_job_success:
-  #   if: ${{ always() }}
-  #   runs-on: ubuntu-latest
-  #   needs: tag_job
-  #   steps:
-  #     - name: Check tag_job status
-  #       if: ${{ needs.tag_job.result != 'success' && needs.tag_job.result != 'skipped' }}
-  #       run: exit 1
+  tag_job_success:
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    needs: tag_job
+    steps:
+      - name: Check tag_job status
+        if: ${{ needs.tag_job.result != 'success' && needs.tag_job.result != 'skipped' }}
+        run: exit 1
