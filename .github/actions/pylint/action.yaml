@@ -21,3 +21,4 @@ runs:
     uses: fylein/python-pylint-github-action@master
     with:
         args: pylint ${{ inputs.files }}
+
