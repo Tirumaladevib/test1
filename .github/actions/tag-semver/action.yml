@@ -72,4 +72,3 @@ runs:
       with:
         tag: "${{ inputs.tag_prefix }}1"
         message: "[Automatic]: create initial major version for ${{ inputs.tag_prefix }}"
-
