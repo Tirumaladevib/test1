@@ -30,8 +30,8 @@ jobs:
              -- '.github/actions/*')
           workflows_changed_files=$(git diff --name-only ${base_sha}...${{ github.sha }} \
              -- '.github/workflows/*')
-          # echo "$actions_changed_files"
-          # echo "$workflows_changed_files"
+          echo "$actions_changed_files"
+          echo "$workflows_changed_files"
 
           # Get directories as an array for all github actions that we version
           readarray -d '' actions < <(echo "${actions_changed_files}" | sed 's|/[^/]*$||' | sort | uniq)
@@ -42,12 +42,12 @@ jobs:
             echo "${workflows[@]}" |  jq -c -R 'split(" ")
             | map({prefix: ("w_" + split("/")[-1] | split(".")[0]), path: (.)})')
 
-          #echo "$workflows_json"
+          echo "$workflows_json"
 
           actions_json=$(
             echo "${actions[@]}" |  jq -c -R 'split(" ") | map({prefix: ("a_" + split("/")[-1]), path: (.)})')
 
-          #echo "$actions_json"
+          echo "$actions_json"
 
           actions_n_workflows_json=$(echo "${workflows_json} ${actions_json}" |  jq -s -c add)
           echo "any_changed=${actions_n_workflows_json[*]+"true"}" >> "${GITHUB_OUTPUT}"
