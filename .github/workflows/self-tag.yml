@@ -25,7 +25,7 @@ jobs:
         run: |
         
           base_sha=$(git rev-parse origin/main)
-          #echo "base_sha=$base_sha" >> $GITHUB_ENV
+          echo "base_sha=$base_sha"
           actions_changed_files=$(git diff --name-only ${base_sha}...${{ github.sha }} \
              -- '.github/actions/*')
           workflows_changed_files=$(git diff --name-only ${base_sha}...${{ github.sha }} \
