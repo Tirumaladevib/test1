@@ -52,6 +52,7 @@ jobs:
           actions_n_workflows_json=$(echo "${workflows_json} ${actions_json}" |  jq -s -c add)
           echo "any_changed=${actions_n_workflows_json[*]+"true"}" >> "${GITHUB_OUTPUT}"
           echo "matrix={\"include\":$actions_n_workflows_json}" >> $GITHUB_OUTPUT
+          
 
       # - name: Get latest commit SHA on main
       #   run: |
