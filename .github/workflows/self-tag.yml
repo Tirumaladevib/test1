@@ -6,53 +6,66 @@ on:
       - main
 
 jobs:
-  # TODO: filter these to changed only to not run matrix for all actions & workflows
+  # TODO: filter these to changed only to not run matrix for all actions & workflows 
 
   get_all_actions_job:
     runs-on: ubuntu-latest
     outputs:
       any_changed: ${{ steps.get-all-actions.outputs.any_changed }}
       changed_dirs: ${{ steps.get-all-actions.outputs.matrix }}
-      # any_changed: ${{ steps.get-changed-modules.outputs.any_changed }}
+      #changed_files: ${{ steps.get-changed-files.outputs.changed_files }}
       # changed_dirs: ${{ steps.get-changed-modules.outputs.changed_dirs }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      # - name: Get changed files
+      #   id: get-changed-files
+      #   # yamllint disable-line rule:line-length
+      #   uses: Tirumaladevib/test1/.github/actions/changed-files-since-last-success@main
+      #   with:
+      #     files_to_match: |
+      #       .github/workflows/**
+      #       .github/actions/**
+      #     get_changed_dirs: true
+      #     github_token: ${{ secrets.GH_TOKEN }}
+      #     separator: "|"
+      #     workflow_id: self-tag.yml
       - name: Get all actions
         id: get-all-actions
         shell: bash
         run: |
-        
-          base_sha=$(git rev-parse origin/main)
-          echo "base_sha=$base_sha"
-          actions_changed_files=$(git diff --name-only ${base_sha}...${{ github.sha }} \
-             -- '.github/actions/*')
-          workflows_changed_files=$(git diff --name-only ${base_sha}...${{ github.sha }} \
-             -- '.github/workflows/*')
-          echo "$actions_changed_files"
-          echo "$workflows_changed_files"
+
+          # Get the last commit hash
+          last_commit=$(git rev-parse HEAD)
+          echo "$last_commit"
+
+          # Check for changes in the specified files since the last commit
+          changed_files=$(git diff --name-only HEAD~1 HEAD)
+          echo "$changed_files"
+
+          actions_changed_files=$(git diff --name-only HEAD~1 HEAD \
+              -- '.github/actions/*')
+          workflows_changed_files=$(git diff --name-only HEAD~1 HEAD \
+              -- '.github/workflows/*')
 
           # Get directories as an array for all github actions that we version
           readarray -d '' actions < <(echo "${actions_changed_files}" | sed 's|/[^/]*$||' | sort | uniq)
           # Get directories as an array for all github workflows that we version
           readarray -d '' workflows < <(echo "${workflows_changed_files}" | sed 's|/[^/]*$||' | sort | uniq)
-
+          
           workflows_json=$(
-            echo "${workflows[@]}" |  jq -c -R 'split(" ")
-            | map({prefix: ("w_" + split("/")[-1] | split(".")[0]), path: (.)})')
-
+            echo "${workflows_changed_files[@]}" |  jq -c -R 'split(" ") | map({prefix: ("w_" + split("/")[-1] | split(".")[0]), path: (.)})')
           echo "$workflows_json"
 
           actions_json=$(
-            echo "${actions[@]}" |  jq -c -R 'split(" ") | map({prefix: ("a_" + split("/")[-1]), path: (.)})')
-
+            echo "${actions_changed_files[@]}" |  jq -c -R 'split(" ") | map({prefix: ("a_" + split("/")[-1]), path: (.)})')
           echo "$actions_json"
 
           actions_n_workflows_json=$(echo "${workflows_json} ${actions_json}" |  jq -s -c add)
           echo "any_changed=${actions_n_workflows_json[*]+"true"}" >> "${GITHUB_OUTPUT}"
           echo "matrix={\"include\":$actions_n_workflows_json}" >> $GITHUB_OUTPUT
-          
+
 
       # - name: Get latest commit SHA on main
       #   run: |
@@ -161,6 +174,7 @@ jobs:
         run: |
           echo "any_changed: ${{ needs.get_all_actions_job.outputs.any_changed }}"
           echo "changed_dirs: ${{ needs.get_all_actions_job.outputs.changed_dirs }}"
+          # echo "changed_files: ${{ needs.get_all_actions_job.outputs.changed_files }}
   
   tag_job:
     runs-on: ubuntu-latest
