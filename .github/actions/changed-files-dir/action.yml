@@ -30,3 +30,4 @@ runs:
         CHANGED_FILES_DIR_NAME: ${{ inputs.changed_dirs }}
         SEPARATOR: ${{ inputs.separator }}
     
+#Test the file    
