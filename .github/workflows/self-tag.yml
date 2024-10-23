@@ -3,7 +3,7 @@ name: Create new tags or update existing ones
 on:
   push:
     branches:
-      - td-commit-test
+      - main
 
 jobs:
   # TODO: filter these to changed only to not run matrix for all actions & workflows 
