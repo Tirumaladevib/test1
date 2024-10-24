@@ -52,7 +52,7 @@ jobs:
           # Get directories as an array for all github actions that we version
           readarray -d '' actions < <(echo "${actions_changed_files}" | sed 's|/[^/]*$||' | sort | uniq)
           # Get directories as an array for all github workflows that we version
-          readarray -d '' workflows < <(echo "${workflows_changed_files}" | sed 's|/[^/]*$||' | sort | uniq)
+          readarray -d '' workflows < <(echo "${workflows_changed_files}")
 
           workflows_json=$(
             echo "${workflows[@]}" |  jq -c -R 'split(" ")
