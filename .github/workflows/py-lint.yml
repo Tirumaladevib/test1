@@ -63,6 +63,3 @@ jobs:
         uses: ./test1/.github/actions/pylint
         with:
           files: ${{ needs.changed_py_files_job.outputs.changed_files }} 
-          #test
-
-          #Test

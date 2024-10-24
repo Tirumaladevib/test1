@@ -3,7 +3,7 @@ name: Create new tags or update existing ones
 on:
   push:
     branches:
-      - main
+      - td-test-tiru1
 
 jobs:
   # TODO: filter these to changed only to not run matrix for all actions & workflows 
@@ -44,39 +44,60 @@ jobs:
         shell: bash
         run: |
 
-          # Get the last commit hash-1
-          last_commit=$(git rev-parse HEAD)
-          echo "$last_commit"
-
-          # Check for changes in the specified files since the last commit
-          changed_files=$(git diff --name-only HEAD~1 HEAD)
-          echo "$changed_files"
-
+          # Get the list of changed files in .github/actions and .github/workflows
           actions_changed_files=$(git diff --name-only HEAD~1 HEAD \
-              -- '.github/actions/*')
-          echo "$actions_changed_files"
+            -- '.github/actions/*')
           workflows_changed_files=$(git diff --name-only HEAD~1 HEAD \
-              -- '.github/workflows/*')
-          echo "$workflows_changed_files"
-
+            -- '.github/workflows/*')
           # Get directories as an array for all github actions that we version
           readarray -d '' actions < <(echo "${actions_changed_files}" | sed 's|/[^/]*$||' | sort | uniq)
           # Get directories as an array for all github workflows that we version
-          readarray -d '' workflows < <(echo "${workflows_changed_files}" | sed 's|/[^/]*$||' | sort | uniq)
-          
+          readarray -d '' workflows < <(echo "${workflows_changed_files}")
+
           workflows_json=$(
             echo "${workflows[@]}" |  jq -c -R 'split(" ")
             | map({prefix: ("w_" + split("/")[-1] | split(".")[0]), path: (.)})')
-          echo "$workflows_json"
 
           actions_json=$(
             echo "${actions[@]}" |  jq -c -R 'split(" ") | map({prefix: ("a_" + split("/")[-1]), path: (.)})')
-          echo "$actions_json"
 
           actions_n_workflows_json=$(echo "${workflows_json} ${actions_json}" |  jq -s -c add)
-          echo "any_changed=${actions_n_workflows_json[*]+"true"}" >> "${GITHUB_OUTPUT}"
           echo "matrix={\"include\":$actions_n_workflows_json}" >> $GITHUB_OUTPUT
-          echo "$matrix"
+          echo "any_changed=${actions_n_workflows_json[*]+"true"}" >> "${GITHUB_OUTPUT}"
+
+          # # Get the last commit hash-1
+          # last_commit=$(git rev-parse HEAD)
+          # echo "$last_commit"
+
+          # # Check for changes in the specified files since the last commit
+          # changed_files=$(git diff --name-only HEAD~1 HEAD)
+          # echo "$changed_files"
+
+          # actions_changed_files=$(git diff --name-only HEAD~1 HEAD \
+          #     -- '.github/actions/*')
+          # echo "$actions_changed_files"
+          # workflows_changed_files=$(git diff --name-only HEAD~1 HEAD \
+          #     -- '.github/workflows/*')
+          # echo "$workflows_changed_files"
+
+          # # Get directories as an array for all github actions that we version
+          # readarray -d '' actions < <(echo "${actions_changed_files}" | sed 's|/[^/]*$||' | sort | uniq)
+          # # Get directories as an array for all github workflows that we version
+          # readarray -d '' workflows < <(echo "${workflows_changed_files}" | sed 's|/[^/]*$||' | sort | uniq)
+          
+          # workflows_json=$(
+          #   echo "${workflows[@]}" |  jq -c -R 'split(" ")
+          #   | map({prefix: ("w_" + split("/")[-1] | split(".")[0]), path: (.)})')
+          # echo "$workflows_json"
+
+          # actions_json=$(
+          #   echo "${actions[@]}" |  jq -c -R 'split(" ") | map({prefix: ("a_" + split("/")[-1]), path: (.)})')
+          # echo "$actions_json"
+
+          # actions_n_workflows_json=$(echo "${workflows_json} ${actions_json}" |  jq -s -c add)
+          # echo "any_changed=${actions_n_workflows_json[*]+"true"}" >> "${GITHUB_OUTPUT}"
+          # echo "matrix={\"include\":$actions_n_workflows_json}" >> $GITHUB_OUTPUT
+          # echo "$matrix"
 
 
       # - name: Get latest commit SHA on main
