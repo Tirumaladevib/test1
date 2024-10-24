@@ -52,10 +52,10 @@ jobs:
           changed_files=$(git diff --name-only HEAD~1 HEAD)
           echo "$changed_files"
 
-          actions_changed_files=$(git diff --name-only origin/main...HEAD \
+          actions_changed_files=$(git diff --name-only HEAD~1 HEAD \
               -- '.github/actions/*')
           echo "$actions_changed_files"
-          workflows_changed_files=$(git diff --name-only origin/main...HEAD \
+          workflows_changed_files=$(git diff --name-only HEAD~1 HEAD \
               -- '.github/workflows/*')
           echo "$workflows_changed_files"
 
