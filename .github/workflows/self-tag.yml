@@ -16,9 +16,9 @@ jobs:
       # any_changed: ${{ steps.get-changed-files.outputs.any_changed }}
       # changed_dirs: ${{ steps.get-changed-modules.outputs.changed_dirs }}
     steps:
-      # - uses: actions/checkout@v4
-      #   with:
-      #     fetch-depth: 0
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       # - name: Get changed files
       #   id: get-changed-files
       #   # yamllint disable-line rule:line-length
@@ -54,8 +54,10 @@ jobs:
 
           actions_changed_files=$(git diff --name-only origin/main...HEAD \
               -- '.github/actions/*')
+          echo "$actions_changed_files"
           workflows_changed_files=$(git diff --name-only origin/main...HEAD \
               -- '.github/workflows/*')
+          echo "$workflows_changed_files"
 
           # Get directories as an array for all github actions that we version
           readarray -d '' actions < <(echo "${actions_changed_files}" | sed 's|/[^/]*$||' | sort | uniq)
