@@ -183,30 +183,30 @@ jobs:
           echo "changed_dirs: ${{ needs.get_all_actions_job.outputs.changed_dirs }}"
           # echo "changed_files: ${{ needs.get_all_actions_job.outputs.changed_files }}
   
-  # tag_job:
-  #   runs-on: ubuntu-latest
-  #   needs: get_all_actions_job
-  #   if: needs.get_all_actions_job.outputs.any_changed == 'true'
-  #   strategy:
-  #     max-parallel: 6
-  #     matrix: ${{ fromJson(needs.get_all_actions_job.outputs.changed_dirs) }}
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #       with:
-  #         fetch-depth: 0
-  #     - uses:  ./.github/actions/tag-semver
-  #       id: semver
-  #       with:
-  #         tag_prefix: "${{ matrix.prefix }}/v"
-  #         major_pattern: "BREAKING CHANGE"
-  #         minor_pattern: "/^(feat|chore)[^a-z]/"
-  #         change_path: ${{ matrix.path }}
+  tag_job:
+    runs-on: ubuntu-latest
+    needs: get_all_actions_job
+    if: needs.get_all_actions_job.outputs.any_changed == 'true'
+    strategy:
+      max-parallel: 6
+      matrix: ${{ fromJson(needs.get_all_actions_job.outputs.changed_dirs) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses:  ./.github/actions/tag-semver
+        id: semver
+        with:
+          tag_prefix: "${{ matrix.prefix }}/v"
+          major_pattern: "BREAKING CHANGE"
+          minor_pattern: "/^(feat|chore)[^a-z]/"
+          change_path: ${{ matrix.path }}
 
-  # tag_job_success:
-  #   if: ${{ always() }}
-  #   runs-on: ubuntu-latest
-  #   needs: tag_job
-  #   steps:
-  #     - name: Check tag_job status
-  #       if: ${{ needs.tag_job.result != 'success' && needs.tag_job.result != 'skipped' }}
-  #       run: exit 1
+  tag_job_success:
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    needs: tag_job
+    steps:
+      - name: Check tag_job status
+        if: ${{ needs.tag_job.result != 'success' && needs.tag_job.result != 'skipped' }}
+        run: exit 1
