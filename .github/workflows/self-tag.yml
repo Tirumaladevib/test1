@@ -3,7 +3,7 @@ name: Create new tags or update existing ones
 on:
   push:
     branches:
-      - main
+      - td-tag1
 
 jobs:
   # TODO: filter these to changed only to not run matrix for all actions & workflows 
@@ -11,72 +11,108 @@ jobs:
   get_all_actions_job:
     runs-on: ubuntu-latest
     outputs:
-      any_changed: ${{ steps.get-all-actions.outputs.any_changed }}
-      changed_dirs: ${{ steps.get-all-actions.outputs.matrix }}
+      any_changed: ${{ steps.get-changed-files.outputs.any_changed }}
+      changed_files: ${{ steps.get-all-actions.outputs.changed_files }}
+      matrix: ${{ steps.get-all-actions.outputs.matrix }}
       # any_changed: ${{ steps.get-changed-files.outputs.any_changed }}
       # changed_dirs: ${{ steps.get-changed-modules.outputs.changed_dirs }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      # - name: Get changed files
-      #   id: get-changed-files
-      #   # yamllint disable-line rule:line-length
-      #   uses: Tirumaladevib/test1/.github/actions/changed-files-since-last-success@main
-      #   with:
-      #     files_to_match: |
-      #       .github/workflows/**
-      #       .github/actions/**
-      #     get_changed_dirs: true
-      #     github_token: ${{ secrets.GH_TOKEN }}
-      #     separator: "|"
-      #     workflow_id: self-tag.yml
+      - name: Get changed files
+        id: get-changed-files
+        # yamllint disable-line rule:line-length
+        uses: Tirumaladevib/test1/.github/actions/changed-files-since-last-success@main
+        with:
+          files_to_match: |
+            .github/workflows/**
+            .github/actions/**
+          github_token: ${{ secrets.GH_TOKEN }}
+          separator: "|"
+          workflow_id: self-tag.yml
+      - name: Get all actions
+        id: get-all-actions
+        shell: bash
+        run: |
+          changed_files_raw="${{ steps.get-changed-files.outputs.matrix }}"
+          changed_files=$(echo "$changed_files_raw" | sed 's/\\|/,/g')
+
+          # Arrays to store workflows and actions
+          workflows=()
+          actions=()
+
+          # Loop through the input files and classify them
+          IFS=',' read -ra FILES <<< "$changed_files"
+          for file in "${FILES[@]}"; do
+            if [[ "$file" == .github/workflows/* ]]; then
+              workflows+=("$file")
+            elif [[ "$file" == .github/actions/* ]]; then
+              actions+=("$file")
+            else
+              echo "Unknown path: $file"
+            fi
+          done
+
+          workflows_json=$(
+          echo "${workflows[@]}" |  jq -c -R 'split(" ")
+            | map({prefix: ("w_" + split("/")[-1] | split(".")[0]), path: (.)})')
+
+          actions_json=$(
+          echo "${actions[@]}" | jq -c -R 'split(" ") | map({
+            prefix: ("a_" + (split("/")[-2] // "" + "_" + split("/")[-1])),
+            path: (split("/") | .[0:-1] | join("/"))})')
+
+          actions_n_workflows_json=$(echo "${workflows_json} ${actions_json}" |  jq -s -c add)
+          echo "matrix={\"include\":$actions_n_workflows_json}" >> $GITHUB_OUTPUT
+          echo "any_changed=${actions_n_workflows_json[*]+"true"}" >> "${GITHUB_OUTPUT}"
+
       # - name: Get changed tf modules
       #   id: get-changed-modules
-      #   uses: Tirumaladevib/test1/.github/actions/changed-files-dir@td-self-tag
+      #   uses: Tirumaladevib/test1/.github/actions/changed-files-dir@td-tag1
       #   with:
       #     changed_dirs: ${{ steps.get-changed-files.outputs.changed_files }}
       #     separator: '|'
         
 
-      - name: Get all actions
-        id: get-all-actions
-        shell: bash
-        run: |
+      # - name: Get all actions
+      #   id: get-all-actions
+      #   shell: bash
+      #   run: |
 
-          # Get the last commit hash-1
-          last_commit=$(git rev-parse HEAD)
-          echo "$last_commit"
+      #     # Get the last commit hash-1
+      #     last_commit=$(git rev-parse HEAD)
+      #     echo "$last_commit"
 
-          # Check for changes in the specified files since the last commit
-          changed_files=$(git diff --name-only HEAD~1 HEAD)
-          echo "$changed_files"
+      #     # Check for changes in the specified files since the last commit
+      #     changed_files=$(git diff --name-only HEAD~1 HEAD)
+      #     echo "$changed_files"
 
-          actions_changed_files=$(git diff --name-only HEAD~1 HEAD \
-              -- '.github/actions/*')
-          echo "$actions_changed_files"
-          workflows_changed_files=$(git diff --name-only HEAD~1 HEAD \
-              -- '.github/workflows/*')
-          echo "$workflows_changed_files"
+      #     actions_changed_files=$(git diff --name-only HEAD~1 HEAD \
+      #         -- '.github/actions/*')
+      #     echo "$actions_changed_files"
+      #     workflows_changed_files=$(git diff --name-only HEAD~1 HEAD \
+      #         -- '.github/workflows/*')
+      #     echo "$workflows_changed_files"
 
-          # Get directories as an array for all github actions that we version
-          readarray -d '' actions < <(echo "${actions_changed_files}" | sed 's|/[^/]*$||' | sort | uniq)
-          # Get directories as an array for all github workflows that we version
-          readarray -d '' workflows < <(echo "${workflows_changed_files}" | sed 's|/[^/]*$||' | sort | uniq)
+      #     # Get directories as an array for all github actions that we version
+      #     readarray -d '' actions < <(echo "${actions_changed_files}" | sed 's|/[^/]*$||' | sort | uniq)
+      #     # Get directories as an array for all github workflows that we version
+      #     readarray -d '' workflows < <(echo "${workflows_changed_files}" | sed 's|/[^/]*$||' | sort | uniq)
           
-          workflows_json=$(
-            echo "${workflows[@]}" |  jq -c -R 'split(" ")
-            | map({prefix: ("w_" + split("/")[-1] | split(".")[0]), path: (.)})')
-          echo "$workflows_json"
+      #     workflows_json=$(
+      #       echo "${workflows[@]}" |  jq -c -R 'split(" ")
+      #       | map({prefix: ("w_" + split("/")[-1] | split(".")[0]), path: (.)})')
+      #     echo "$workflows_json"
 
-          actions_json=$(
-            echo "${actions[@]}" |  jq -c -R 'split(" ") | map({prefix: ("a_" + split("/")[-1]), path: (.)})')
-          echo "$actions_json"
+      #     actions_json=$(
+      #       echo "${actions[@]}" |  jq -c -R 'split(" ") | map({prefix: ("a_" + split("/")[-1]), path: (.)})')
+      #     echo "$actions_json"
 
-          actions_n_workflows_json=$(echo "${workflows_json} ${actions_json}" |  jq -s -c add)
-          echo "any_changed=${actions_n_workflows_json[*]+"true"}" >> "${GITHUB_OUTPUT}"
-          echo "matrix={\"include\":$actions_n_workflows_json}" >> $GITHUB_OUTPUT
-          echo "$matrix"
+      #     actions_n_workflows_json=$(echo "${workflows_json} ${actions_json}" |  jq -s -c add)
+      #     echo "any_changed=${actions_n_workflows_json[*]+"true"}" >> "${GITHUB_OUTPUT}"
+      #     echo "matrix={\"include\":$actions_n_workflows_json}" >> $GITHUB_OUTPUT
+      #     echo "$matrix"
 
 
       # - name: Get latest commit SHA on main
@@ -180,8 +216,8 @@ jobs:
       - name: Get outputs
         run: |
           echo "any_changed: ${{ needs.get_all_actions_job.outputs.any_changed }}"
-          echo "changed_dirs: ${{ needs.get_all_actions_job.outputs.changed_dirs }}"
-          # echo "changed_files: ${{ needs.get_all_actions_job.outputs.changed_files }}
+          echo "changed_files: ${{ needs.get_all_actions_job.outputs.changed_files }}"
+          echo "matrix: ${{ needs.get_all_actions_job.outputs.matrix }}"
   
   tag_job:
     runs-on: ubuntu-latest
@@ -189,7 +225,7 @@ jobs:
     if: needs.get_all_actions_job.outputs.any_changed == 'true'
     strategy:
       max-parallel: 6
-      matrix: ${{ fromJson(needs.get_all_actions_job.outputs.changed_dirs) }}
+      matrix: ${{ fromJson(needs.get_all_actions_job.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
         with:

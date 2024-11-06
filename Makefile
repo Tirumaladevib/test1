@@ -12,3 +12,4 @@ container containers:
 	@for bin in $(BINS); do              \
 	    echo "container: $(REGISTRY)/$(PROJECT)-$$bin:$(TAG)"; \
 	done
+
