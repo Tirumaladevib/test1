@@ -35,8 +35,7 @@ jobs:
         id: get-all-actions
         shell: bash
         run: |
-          changed_files_raw="${{ steps.get-changed-files.outputs.matrix }}"
-
+          changed_files_raw='${{ steps.get-changed-files.outputs.matrix }}'
           # Filter and classify the files with jq
           # Extract workflow files using jq
           workflows=$(echo "$changed_files_raw" | jq -r '.paths[] | select(startswith(".github/workflows/"))')
