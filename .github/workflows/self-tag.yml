@@ -38,8 +38,11 @@ jobs:
           changed_files_raw="${{ steps.get-changed-files.outputs.matrix }}"
 
           # Filter and classify the files with jq
-          workflows=$(echo "$changed_files_raw" | jq -r '.matrix[] | select(.file | startswith(".github/workflows/")) | .file')
-          actions=$(echo "$changed_files_raw" | jq -r '.matrix[] | select(.file | startswith(".github/actions/")) | .file')
+          # Extract workflow files using jq
+          workflows=$(echo "$changed_files_raw" | jq -r '.paths[] | select(startswith(".github/workflows/"))')
+
+          # Extract action files using jq (if needed)
+          actions=$(echo "$changed_files_raw" | jq -r '.paths[] | select(startswith(".github/actions/"))')
 
           # Convert filtered output to arrays
           workflows_array=($(echo "$workflows"))
