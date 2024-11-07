@@ -36,7 +36,6 @@ jobs:
         shell: bash
         run: |
           changed_files_raw="${{ steps.get-changed-files.outputs.matrix }}"
-          #changed_files=$(echo "$changed_files_raw" | sed 's/\\|/,/g')
 
           # Filter and classify the files with jq
           workflows=$(echo "$changed_files_raw" | jq -r '.matrix[] | select(.file | startswith(".github/workflows/")) | .file')
@@ -51,11 +50,11 @@ jobs:
           echo "actions: ${actions_array[@]}"
 
           workflows_json=$(
-          echo "${workflows[@]}" |  jq -c -R 'split(" ")
+          echo "${workflows_array[@]}" |  jq -c -R 'split(" ")
             | map({prefix: ("w_" + split("/")[-1] | split(".")[0]), path: (.)})')
 
           actions_json=$(
-          echo "${actions[@]}" | jq -c -R 'split(" ") | map({
+          echo "${actions_array[@]}" | jq -c -R 'split(" ") | map({
             prefix: ("a_" + (split("/")[-2] // "" + "_" + split("/")[-1])),
             path: (split("/") | .[0:-1] | join("/"))})')
 
