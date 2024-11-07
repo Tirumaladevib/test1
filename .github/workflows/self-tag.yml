@@ -3,7 +3,7 @@ name: Create new tags or update existing ones
 on:
   push:
     branches:
-      - main
+      - td-test2
 
 jobs:
   # TODO: filter these to changed only to not run matrix for all actions & workflows 
@@ -35,24 +35,20 @@ jobs:
         id: get-all-actions
         shell: bash
         run: |
-          changed_files_raw="${{ steps.get-changed-files.outputs.changed_files }}"
-          changed_files=$(echo "$changed_files_raw" | sed 's/\\|/,/g')
+          changed_files_raw="${{ steps.get-changed-files.outputs.matrix }}"
+          #changed_files=$(echo "$changed_files_raw" | sed 's/\\|/,/g')
 
-          # Arrays to store workflows and actions
-          workflows=()
-          actions=()
+          # Filter and classify the files with jq
+          workflows=$(echo "$changed_files_raw" | jq -r '.matrix[] | select(.file | startswith(".github/workflows/")) | .file')
+          actions=$(echo "$changed_files_raw" | jq -r '.matrix[] | select(.file | startswith(".github/actions/")) | .file')
 
-          # Loop through the input files and classify them
-          IFS=',' read -ra FILES <<< "$changed_files"
-          for file in "${FILES[@]}"; do
-            if [[ "$file" == .github/workflows/* ]]; then
-              workflows+=("$file")
-            elif [[ "$file" == .github/actions/* ]]; then
-              actions+=("$file")
-            else
-              echo "Unknown path: $file"
-            fi
-          done
+          # Convert filtered output to arrays
+          workflows_array=($(echo "$workflows"))
+          actions_array=($(echo "$actions"))
+
+          # Output the results (optional)
+          echo "workflows: ${workflows_array[@]}"
+          echo "actions: ${actions_array[@]}"
 
           workflows_json=$(
           echo "${workflows[@]}" |  jq -c -R 'split(" ")
