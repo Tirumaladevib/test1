@@ -73,5 +73,3 @@ jobs:
                 shellcheck $file || exit_code=1
            done
            exit $exit_code
-
-           
