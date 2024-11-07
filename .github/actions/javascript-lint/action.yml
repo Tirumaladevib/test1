@@ -36,5 +36,4 @@ runs:
           else
             npx audit-ci --config ${{ inputs.config_file }}
           fi
- #test
       
