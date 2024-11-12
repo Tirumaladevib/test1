@@ -3,7 +3,7 @@ name: Create new tags or update existing ones
 on:
   push:
     branches:
-      - main
+      - td-test2
 
 jobs:
   # TODO: filter these to changed only to not run matrix for all actions & workflows 
@@ -31,41 +31,39 @@ jobs:
           github_token: ${{ secrets.GH_TOKEN }}
           separator: "|"
           workflow_id: self-tag.yml
+      - name: Save matrix output to a temporary file
+        shell: bash
+        run: |
+          echo '${{ toJSON(steps.get-changed-files.outputs.matrix) }}' > path.json
+          cat path.json
       - name: Get all actions
         id: get-all-actions
         shell: bash
         run: |
-          changed_files_raw="${{ steps.get-changed-files.outputs.changed_files }}"
-          changed_files=$(echo "$changed_files_raw" | sed 's/\\|/,/g')
+          echo '${{ (steps.get-changed-files.outputs.matrix) }}' > path.json
+          matrix=$(jq -c '
+          .paths | map(
+            if startswith(".github/workflows")
+            then {
+              "prefix": ("w_" + (split("/")[-1] | split(".")[0])),
+              "path": .
+            }
+            elif startswith(".github/actions")
+            then {
+              "prefix": ("a_" + (split("/")[-2] // "" + "_" + split("/")[-1])),
+              "path": (split("/") | .[0:-1] | join("/"))
+            }
+            else empty
+            end
+          )
+          ' path.json)
+          # Save jq output to GitHub output with valid formatting
+          #formatted_matrix=$(echo "$matrix" | jq -r '.include[] | "prefix: \(.prefix), path: \(.path)"')
+          echo "matrix=$matrix"
 
-          # Arrays to store workflows and actions
-          workflows=()
-          actions=()
-
-          # Loop through the input files and classify them
-          IFS=',' read -ra FILES <<< "$changed_files"
-          for file in "${FILES[@]}"; do
-            if [[ "$file" == .github/workflows/* ]]; then
-              workflows+=("$file")
-            elif [[ "$file" == .github/actions/* ]]; then
-              actions+=("$file")
-            else
-              echo "Unknown path: $file"
-            fi
-          done
-
-          workflows_json=$(
-          echo "${workflows[@]}" |  jq -c -R 'split(" ")
-            | map({prefix: ("w_" + split("/")[-1] | split(".")[0]), path: (.)})')
-
-          actions_json=$(
-          echo "${actions[@]}" | jq -c -R 'split(" ") | map({
-            prefix: ("a_" + (split("/")[-2] // "" + "_" + split("/")[-1])),
-            path: (split("/") | .[0:-1] | join("/"))})')
-
-          actions_n_workflows_json=$(echo "${workflows_json} ${actions_json}" |  jq -s -c add)
-          echo "matrix={\"include\":$actions_n_workflows_json}" >> $GITHUB_OUTPUT
-          echo "any_changed=${actions_n_workflows_json[*]+"true"}" >> "${GITHUB_OUTPUT}"
+          #actions_n_workflows_json=$(echo "${workflows_json} ${actions_json}" |  jq -s -c add)
+          #echo "any_changed=${actions_n_workflows_json[*]+"true"}" >> "${GITHUB_OUTPUT}"
+          echo "matrix={\"include\":$matrix}" >> $GITHUB_OUTPUT
 
       # - name: Get changed tf modules
       #   id: get-changed-modules
