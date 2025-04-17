@@ -51,7 +51,7 @@ jobs:
         GITHUB_BASE_BRANCH: ${{ github.base_ref }}
 
     - name: Get changed files
-      uses: tj-actions/changed-files@v12
+      uses: tj-actions/changed-files@v46
       id: changed-files
       with:
         base_sha: ${{ steps.common_ancestor_commit.outputs.commit_sha || steps.last_successful_commit.outputs.commit_hash }}
